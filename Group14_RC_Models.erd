@@ -1,0 +1,211 @@
+erdiagram RC_Models
+
+notation=crowsfoot
+
+// -------------------------
+// Entities
+// -------------------------
+entity Customer {
+    customer_id: INTEGER key
+    customer_name: VARCHAR(200)
+    customer_email: VARCHAR(200) // unique
+    customer_address: TEXT
+    customer_phone: VARCHAR(50)
+    customer_source
+    date_registered: DATE
+}
+
+entity Order {
+    order_id: INTEGER key
+    order_date: DATETIME
+    order_status: VARCHAR(20)
+    customer_id: INTEGER
+}
+
+entity OrderLine {
+    order_id: INTEGER key
+    product_id: INTEGER key
+    quantity: INTEGER
+    price_per_unit: DECIMAL(10,2)
+    is_backorder: BOOLEAN
+    backorder_date: DATE
+}
+
+entity Invoice {
+    invoice_id: INTEGER key
+    order_id: INTEGER
+    inv_date: DATE
+    inv_subtotal: DECIMAL(12,2)
+    shipping_charges: DECIMAL(10,2)
+    tax_amount: DECIMAL(10,2)
+    inv_total: DECIMAL(12,2)
+    payment_status: VARCHAR(20)
+    payment_date: DATE
+}
+
+entity Product {
+    product_id: INTEGER key
+    product_name: VARCHAR(200)
+    product_category: VARCHAR(100)
+    product_scale: VARCHAR(50)
+    product_price: DECIMAL(10,2)
+    product_stock_level: INTEGER
+    reorder_level: INTEGER
+    mfg_id: INTEGER
+}
+
+entity Manufacturer {
+    mfg_id: INTEGER key
+    mfg_name: VARCHAR(200)
+    mfg_website: VARCHAR(300)
+    contact_info: VARCHAR(300)
+    is_active: BOOLEAN
+    date_added: DATE
+}
+
+// Additional supportive entities referenced in README
+entity PaymentTransaction {
+    payment_id: INTEGER key
+    invoice_id: INTEGER
+    payment_date: DATE
+    amount: DECIMAL(12,2)
+    payment_method: VARCHAR(50)
+    status: VARCHAR(20)
+}
+
+entity InventoryTransaction {
+    inv_tx_id: INTEGER key
+    product_id: INTEGER
+    tx_type: VARCHAR(50) // e.g., SALE, RECEIPT, ADJUSTMENT
+    quantity: INTEGER
+    tx_date: DATE
+}
+
+entity Promotion {
+    promotion_id: INTEGER key
+    product_id: INTEGER
+    promo_name
+    start_date: DATE
+    end_date: DATE
+}
+
+entity SubscriptionList {
+    list_id: INTEGER key
+    list_name
+}
+
+entity PurchaseOrder {
+    po_id: INTEGER key
+    mfg_id: INTEGER
+    po_date: DATE
+    expected_delivery: DATE
+}
+
+entity PriceHistory {
+    price_hist_id: INTEGER key
+    product_id: INTEGER
+    price: DECIMAL(10,2)
+    valid_from: DATE
+    valid_to: DATE
+}
+
+entity Shipment {
+    shipment_id: INTEGER key
+    order_id: INTEGER
+    shipped_date: DATE
+    carrier
+    tracking_number
+}
+
+entity ShipmentItem {
+    shipment_item_id: INTEGER key
+    shipment_id: INTEGER
+    product_id: INTEGER
+    quantity: INTEGER
+}
+
+// -------------------------
+// Relationships
+// -------------------------
+
+// Customer - Order: a customer may place zero or many orders; each order belongs to exactly one customer
+relationship Places {
+    Customer[0..N] -> Order[1]
+}
+
+// Order - OrderLine: an order must contain one or more order lines; each order line belongs to exactly one order
+relationship Contains {
+    Order[1] -> OrderLine[1..N]
+}
+
+// Product - OrderLine: a product can appear in many order lines; each order line references exactly one product
+relationship Is_On {
+    Product[0..N] -> OrderLine[1]
+}
+
+// Order - Invoice: each order generates exactly one invoice and each invoice is for exactly one order (1:1)
+relationship Generates {
+    Order[1] -> Invoice[1]
+}
+
+// Manufacturer - Product: manufacturer supplies many products; each product is supplied by exactly one manufacturer
+relationship Supplies {
+    Manufacturer[1] -> Product[0..N]
+}
+
+// Invoice - PaymentTransaction: an invoice may have zero or many payment transactions
+relationship Includes_Payment {
+    Invoice[1] -> PaymentTransaction[0..N]
+}
+
+// Product - InventoryTransaction: product may have many inventory transactions
+relationship Tracks_Inventory {
+    Product[1] -> InventoryTransaction[0..N]
+}
+
+// Product - Promotion: product may be featured in many promotions
+relationship Featured_In {
+    Product[1] -> Promotion[0..N]
+}
+
+// Customer - SubscriptionList: customer may subscribe to many lists
+relationship Subscribes_To {
+    Customer[0..N] -> SubscriptionList[0..N]
+}
+
+// Manufacturer - PurchaseOrder: manufacturer may fulfil many purchase orders
+relationship Fulfils {
+    Manufacturer[1] -> PurchaseOrder[0..N]
+}
+
+// PurchaseOrder - InventoryTransaction: PO may result in many inventory transactions (receipts)
+relationship Results_In {
+    PurchaseOrder[1] -> InventoryTransaction[0..N]
+}
+
+// Product - PriceHistory: product has many price history records
+relationship Maintains_PriceHistory {
+    Product[1] -> PriceHistory[0..N]
+}
+
+// Order - Shipment: an order may have zero or more shipments
+relationship Ships {
+    Order[1] -> Shipment[0..N]
+}
+
+// Shipment - ShipmentItem: shipment contains one or more shipment items
+relationship Shipment_Contains {
+    Shipment[1] -> ShipmentItem[1..N]
+}
+
+// Product - ShipmentItem: product may appear in many shipment items
+relationship Product_In_Shipment {
+    Product[1] -> ShipmentItem[0..N]
+}
+
+/*
+  Notes:
+  - Primary keys declared with `key`.
+  - Business rules from Group14_RC_Models_README.md have been encoded as cardinality/participation where possible.
+  - Some attributes (like uniqueness constraints) are documented but not all are expressible in the bigER attribute classifiers; consider adding comments or DDL later if you need enforcement.
+*/
